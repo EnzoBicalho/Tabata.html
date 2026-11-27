@@ -133,6 +133,10 @@ void main(){
  bg+=vec3(.0015,.0025,.008)*paperGrid*wipe;
  bg=mix(bg,uColorHover,step(n.g,-.1+uHover*1.1));
  vec4 base=texture2D(tDefaultDiffuse,vUv),alt=texture2D(tBlueprint,vUv);
+ // Transparent render targets contain premultiplied RGB; undo it before mixing
+ // to preserve native hair edges instead of darkening their alpha twice.
+ base.rgb=base.a>.00001?base.rgb/base.a:vec3(0.);
+ alt.rgb=alt.a>.00001?alt.rgb/alt.a:vec3(0.);
  vec3 color=mix(bg,base.rgb,base.a*(1.-uBackgroundOnly));
  color=mix(color,alt.rgb,alt.a*min(1.,cursor+wipe)*(1.-uBackgroundOnly));
  float outputAlpha=1.;

@@ -17,14 +17,15 @@ void main(){
  float radius=uReveal*(length(vec2(uAspect,1.))+.3);
  float field=distance(p,origin)+noise*.11*uMotion+length(flow)*.035;
  float mask=(1.-smoothstep(radius-.045,radius+.045,field))*smoothstep(0.,.03,uReveal);
- vec2 cover=uImageAspect>uAspect?vec2(uAspect/uImageAspect,1.):vec2(1.,uImageAspect/uAspect);
+ vec2 displaySize=uImageAspect>uAspect?vec2(.8,.8*uAspect/uImageAspect):vec2(.8*uImageAspect/uAspect,.8);
  vec2 ripple=flow*.045*uMotion;
  ripple+=sin(vec2(p.y,p.x)*21.+uTime*2.)*min(length(velocity),1.)*.003*uMotion;
- vec2 uv=(vUv-.5+ripple)*cover+.5;
+ vec2 uv=(vUv-.5+ripple)/displaySize+.5;
+ float inside=step(0.,uv.x)*step(uv.x,1.)*step(0.,uv.y)*step(uv.y,1.);
  vec4 photo=texture2D(tPhoto,clamp(uv,vec2(.001),vec2(.999)));
  // A fine moving lip follows the organic reveal; the portrait remains undimmed.
  float lip=(1.-smoothstep(.0,.022,abs(field-radius)))*.12*uMotion;
- gl_FragColor=vec4(photo.rgb+vec3(lip*.35,lip*.48,lip*.65),photo.a*mask);
+ gl_FragColor=vec4(photo.rgb+vec3(lip*.35,lip*.48,lip*.65),photo.a*mask*inside);
  #include <colorspace_fragment>
 }`;
 

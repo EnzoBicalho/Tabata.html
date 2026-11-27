@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {HeroFluid} from './hero-fluid.js';
-import {createHeroSubjects,addStudioLights} from './hero-subjects.js?v=20261126-enzo-1';
-import {fullscreenVertex,noiseFragment,compositeFragment,flowColorFragment} from './hero-shaders.js?v=20261126-html-behind-1';
+import {createHeroSubjects,addStudioLights} from './hero-subjects.js?v=20261127-quality-2';
+import {fullscreenVertex,noiseFragment,compositeFragment,flowColorFragment} from './hero-shaders.js?v=20261127-alpha-2';
 import {initHeroHeader} from './hero-header.js?v=20261126-pill-1';
 
 export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
@@ -18,13 +18,13 @@ export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
   const touchButton=root.querySelector('[data-hero-touch]');
   const mark=document.querySelector('.lh-mark'),card=root.querySelector('.lh-card'),touch=root.querySelector('.lh-touch');
   const firstName=heading.querySelector('.lh-name-first'),lastName=heading.querySelector('.lh-name-last');
-  if(!reduceMotion){gsap.set(mark,{y:-90,autoAlpha:0});gsap.set(card,{x:-180,autoAlpha:0});gsap.set(touch,{x:-48,autoAlpha:0});gsap.set(firstName,{x:-root.clientWidth*.5,autoAlpha:0});gsap.set(lastName,{x:root.clientWidth*.5,autoAlpha:0});}
-  function enterChrome(timeline){timeline.to(mark,{y:0,autoAlpha:1,duration:.85,ease:'power3.out'},.05).to(card,{x:0,autoAlpha:1,duration:.9,ease:'power3.out'},.2).to(touch,{x:0,autoAlpha:1,duration:.8,ease:'power3.out'},.25).to(firstName,{x:0,autoAlpha:1,duration:1.1,ease:'power3.out'},.12).to(lastName,{x:0,autoAlpha:1,duration:1.1,ease:'power3.out'},.12);}
+  if(!reduceMotion){gsap.set(mark,{y:0,autoAlpha:0});gsap.set(card,{x:-180,autoAlpha:0});gsap.set(touch,{x:-48,autoAlpha:0});gsap.set(firstName,{x:-root.clientWidth*.5,autoAlpha:0});gsap.set(lastName,{x:root.clientWidth*.5,autoAlpha:0});}
+  function enterChrome(timeline){gsap.set(mark,{y:0,autoAlpha:1});timeline.to(card,{x:0,autoAlpha:1,duration:.9,ease:'power3.out'},.2).to(touch,{x:0,autoAlpha:1,duration:.8,ease:'power3.out'},.25).to(firstName,{x:0,autoAlpha:1,duration:1.1,ease:'power3.out'},.12).to(lastName,{x:0,autoAlpha:1,duration:1.1,ease:'power3.out'},.12);}
   function afterLoading(callback){if(document.documentElement.dataset.loadingComplete==='true'||!document.querySelector('#preloader'))callback();else document.addEventListener('portfolio-loading-complete',callback,{signal,once:true});}
   let renderer;
-  try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:true,powerPreference:'high-performance'});}
+  try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}
   catch(error){root.dataset.renderer='fallback';console.warn('Hero: WebGL unavailable; showing fallback.',error);if(!reduceMotion)gsap.set(root.querySelector('.lh-fallback img'),{yPercent:110});afterLoading(()=>{if(reduceMotion)return;introTimeline=gsap.timeline();introTimeline.fromTo(root.querySelector('.lh-fallback img'),{yPercent:110},{yPercent:0,duration:1.25,ease:'power3.out'},0);enterChrome(introTimeline);});window.addEventListener('pagehide',()=>{introTimeline?.kill();disposeHeader();abort.abort();},{once:true});return;}
-  renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;
+  const pixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2);renderer.setPixelRatio(pixelRatio);renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.NoToneMapping;renderer.autoClear=false;
   renderer.setClearColor(0x000000,0);
   // Keep actual HTML typography between the animated background and portrait.
@@ -39,7 +39,7 @@ export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
   scene.add(portrait);alternate.add(blueprint);addStudioLights(scene);
   const quadScene=new THREE.Scene(),quadCamera=new THREE.Camera(),quadGeometry=new THREE.PlaneGeometry(2,2);
   const quad=new THREE.Mesh(quadGeometry);quad.frustumCulled=false;quadScene.add(quad);
-  const target=()=>new THREE.WebGLRenderTarget(1,1,{samples:1,depthBuffer:true});
+  const target=()=>new THREE.WebGLRenderTarget(1,1,{samples:4,depthBuffer:true});
   const portraitTarget=target(),blueprintTarget=target(),noiseTarget=target(),flowTarget=target();
 
   const point=new THREE.Vector2(),smooth=new THREE.Vector2(),previousPoint=new THREE.Vector2();
@@ -71,12 +71,12 @@ export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
   function resize(){
     const w=Math.round(root.clientWidth),h=Math.round(root.clientHeight);if(w===width&&h===height)return;
     width=w;height=h;mobile=w<=768;renderer.setSize(w,h,false);
-    background.width=w;background.height=h;
+    background.width=Math.round(w*pixelRatio);background.height=Math.round(h*pixelRatio);
     if(!mobile&&locked)unlock();
     camera.aspect=w/h;camera.position.z=mobile?3.75:3;camera.updateProjectionMatrix();
     positionPortrait();
     blueprint.position.copy(portrait.position);
-    for(const t of [portraitTarget,blueprintTarget,noiseTarget,flowTarget])t.setSize(w,h);
+    for(const t of [portraitTarget,blueprintTarget,noiseTarget,flowTarget])t.setSize(Math.round(w*pixelRatio),Math.round(h*pixelRatio));
     renderer.setRenderTarget(flowTarget);renderer.setClearColor(0xffffff,1);renderer.clear();renderer.setClearColor(0,0);
     fluid.resize(w,h);noise.uniforms.uAspect.value=w/h;
   }
@@ -86,7 +86,7 @@ export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
   function renderQuad(material,renderTarget){quad.material=material;renderer.setRenderTarget(renderTarget);renderer.clear();renderer.render(quadScene,quadCamera);}
   function renderComposite(){
     uniforms.uCompositionLayer.value=1;renderQuad(composite,null);
-    backgroundContext.drawImage(canvas,0,0);
+    backgroundContext.drawImage(canvas,0,0,background.width,background.height);
     uniforms.uCompositionLayer.value=2;renderQuad(composite,null);
   }
   function renderSubject(subject,targetScene,renderTarget){
@@ -164,7 +164,9 @@ export async function initHero({gsap,ScrollTrigger,lenis,reduceMotion=false}){
   function draw(now){
     frame=requestAnimationFrame(draw);
     const dt=Math.min((now-last)/1000,1/30);last=now;
-    if(disposed||lost||document.hidden||!visible)return;
+    // GPU assets have already been warmed once; leave the GPU idle while the
+    // preloader draws and travels, then resume for the portrait entrance.
+    if(disposed||lost||document.hidden||!visible||!started)return;
     const elapsed=(now-origin)/1000;
     positionPortrait();
     if(!reduceMotion&&started){

@@ -1,5 +1,5 @@
-@font-face{font-family:'Neue Machina';src:url('assets/fonts/neue-machina-font-family/neuemachina-light.otf') format('opentype');font-style:normal;font-weight:300;font-display:swap;}
-@font-face{font-family:'Neue Machina';src:url('assets/fonts/neue-machina-font-family/neuemachina-regular.otf') format('opentype');font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:'Tempting';src:url('assets/fonts/tempting/Tempting%20-%20PERSONAL%20USE%20ONLY.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:'Tempting';src:url('assets/fonts/tempting/Tempting%20-%20PERSONAL%20USE%20ONLY.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap;}
 /* 404 Terminal Styles */
 :root {
   --bg: #020202;
@@ -15,10 +15,10 @@
   --card-bg: #080812;
   --selection-bg: #0066ff;
   --selection-fg: #ffffff;
-  --font-mono: "Neue Machina", sans-serif;
+  --font-mono: "Inter", sans-serif;
   --font-space: monospace;
-  --font-sans: "Neue Machina", sans-serif;
-  --font-display: "Meshed Display", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Tempting", serif;
 }
 
 * {
@@ -38,10 +38,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-@font-face{font-family:'Meshed Display';src:url('assets/fonts/meshed-display-font-family/MeshedDisplay-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap;}
-@font-face{font-family:'Meshed Display';src:url('assets/fonts/meshed-display-font-family/MeshedDisplay-Slanted.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap;}
-@font-face{font-family:'Meshed Display';src:url('assets/fonts/meshed-display-font-family/MeshedDisplay-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap;}
-@font-face{font-family:'Meshed Display';src:url('assets/fonts/meshed-display-font-family/MeshedDisplay-LightSlanted.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap;}
 /* Selection */
 ::selection {
   background-color: var(--selection-bg);

@@ -42,12 +42,14 @@ export function initPortfolioSections({gsap,ScrollTrigger}){
     const sentence=copy[lang()].statement;text.setAttribute('aria-label',sentence);
     const words=sentence.split(' ').map((word,index)=>{
       if(index)text.append(document.createTextNode(' '));
-      const clip=document.createElement('span'),span=document.createElement('span');clip.className='interlude__clip';clip.setAttribute('aria-hidden','true');span.className='interlude__word';span.textContent=word;
+      const clip=document.createElement('span'),span=document.createElement('span');clip.className='interlude__clip';clip.setAttribute('aria-hidden','true');span.className='interlude__word';span.textContent=word;span.style.setProperty('--reveal',reduced?'112%':'0%');
       if(['design','technology','creativity','tecnologia','criatividade'].includes(word.replace(/[,.]/g,'')))span.classList.add('is-accent');
       clip.append(span);text.append(clip);return span;
     });
-    if(reduced){gsap.set(words,{yPercent:0,opacity:1,filter:'none'});return;}
-    statementTween=gsap.fromTo(words,{yPercent:45,opacity:.12,filter:'blur(5px)'},{yPercent:0,opacity:1,filter:'blur(0px)',duration:1,stagger:.08,ease:'power2.out',scrollTrigger:{trigger:interlude,start:'top 75%',end:'bottom 60%',scrub:.6,invalidateOnRefresh:true}});
+    if(reduced){gsap.set(words,{'--reveal':'112%'});return;}
+    // A soft reading edge passes through each word without moving the baseline
+    // or blurring the letterforms. Overlap keeps the sweep continuous at spaces.
+    statementTween=gsap.fromTo(words,{'--reveal':'0%'},{'--reveal':'112%',duration:1,stagger:.7,ease:'none',scrollTrigger:{trigger:text,start:'top 80%',end:'bottom 48%',scrub:.3,invalidateOnRefresh:true}});
   }
   function updateLanguage(){
     const locale=lang(),c=copy[locale];languageCode=locale;

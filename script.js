@@ -1,7 +1,7 @@
-import {initPortfolioSections} from './portfolio-sections.js?v=20261126-1';
+import {initPortfolioSections} from './portfolio-sections.js?v=20261127-reading-2';
 import {initStaggeredMenu} from './staggered-menu.js?v=20261126-1';
 import {initPillNav} from './pill-nav.js?v=20261126-1';
-import {startAssetLoader} from "./asset-loader.js?v=20261126-enzo-1";
+import {startAssetLoader} from "./asset-loader.js?v=20261127-legible-5";
 gsap.registerPlugin(ScrollTrigger);
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -17,7 +17,7 @@ if (history.scrollRestoration) {
 }
 window.scrollTo(0, 0);
 
-const pageLoader=startAssetLoader();
+const pageLoader=startAssetLoader({gsap});
 lenis.stop();document.addEventListener('portfolio-loading-complete',()=>lenis.start(),{once:true});
 
 const translations = {
@@ -411,12 +411,12 @@ const header = document.querySelector(".site-header");
 if (header) gsap.fromTo(header, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out", onComplete: () => gsap.set(header, { clearProps: "transform" }) });
 
 // Hero replacement stays isolated from the remaining portfolio animations.
-pageLoader.track('Hero 3D',()=>import('./hero.js?v=20261126-enzo-1').then(({initHero})=>initHero({gsap,ScrollTrigger,lenis,reduceMotion})))
+pageLoader.track('Hero 3D',()=>import('./hero.js?v=20261127-smooth-3').then(({initHero})=>initHero({gsap,ScrollTrigger,lenis,reduceMotion})))
   .catch(error=>console.error('Hero initialization failed; fallback remains visible.',error));
 
 pageLoader.track('Project textures',()=>import('./flex-carousel.js?v=20261126-preload-1').then(({initProjectsCarousel})=>initProjectsCarousel()).then(api=>api?.ready)).catch(error=>console.warn('Project carousel unavailable; grid retained.',error));
 
-pageLoader.track('Profile photo GPU',()=>import('./personal-profile.js?v=20261126-live-refresh-1').then(({initPersonalProfile})=>initPersonalProfile({gsap,ScrollTrigger,preload:true})).then(api=>api?.ready)).catch(error=>console.warn('Profile motion unavailable; content remains visible.',error));
+pageLoader.track('Profile photo GPU',()=>import('./personal-profile.js?v=20261127-unclip-2').then(({initPersonalProfile})=>initPersonalProfile({gsap,ScrollTrigger,preload:true})).then(api=>api?.ready)).catch(error=>console.warn('Profile motion unavailable; content remains visible.',error));
 
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
   link.addEventListener("click", (event) => {

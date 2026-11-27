@@ -14,9 +14,8 @@ export function createPortraitMaps(portraitImage,depthImage,{height=.68,displace
   const at=(x,y)=>heights[Math.min(rows-1,Math.max(0,y))*width+Math.min(width-1,Math.max(0,x))];
   for(let y=0;y<rows;y++)for(let x=0;x<width;x++){
     const source=(y*width+x)*4,dest=((rows-1-y)*width+x)*4;
-    // The depth silhouette only gates edge remnants; the native alpha keeps fine hair.
-    const u=Math.max(0,Math.min(1,(depth[source]/255-.02)/.04)),gate=u*u*(3-2*u);
-    const alpha=Math.round(photo[source+3]*gate),clip=Math.round(255*gate);
+    // Preserve fine native alpha; a generated depth silhouette must never trim hair.
+    const alpha=photo[source+3],clip=255;
     alphaData[dest]=alphaData[dest+1]=alphaData[dest+2]=alpha;alphaData[dest+3]=255;
     clipData[dest]=clipData[dest+1]=clipData[dest+2]=clip;clipData[dest+3]=255;
     const dx=(at(x+2,y)-at(x-2,y))/(4*height/rows),dy=(at(x,y+2)-at(x,y-2))/(4*height/rows);

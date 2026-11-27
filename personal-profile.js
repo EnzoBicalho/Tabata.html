@@ -6,7 +6,7 @@ export function initPersonalProfile({gsap,ScrollTrigger,preload=false}){
   const reduced=matchMedia('(prefers-reduced-motion:reduce)'),fine=matchMedia('(hover:hover) and (pointer:fine)'),abort=new AbortController(),{signal}=abort;
   let mode='design',transition,entrance,visible=false,motion,disposed=false;
   let photo,photoReady;
-  function loadPhoto(){if(photoReady)return photoReady;photoObserver.disconnect();return photoReady=import('./profile-photo.js?v=20261126-preload-1').then(({initProfilePhoto})=>initProfilePhoto({poster,gsap})).then(api=>{if(disposed)api?.dispose();else photo=api;return api;}).catch(error=>{poster.dataset.photoRenderer='fallback';console.warn('Profile photo initialization failed.',error);});}
+  function loadPhoto(){if(photoReady)return photoReady;photoObserver.disconnect();return photoReady=import('./profile-photo.js?v=20261127-fit-2').then(({initProfilePhoto})=>initProfilePhoto({poster,gsap})).then(api=>{if(disposed)api?.dispose();else photo=api;return api;}).catch(error=>{poster.dataset.photoRenderer='fallback';console.warn('Profile photo initialization failed.',error);});}
   const photoObserver=new IntersectionObserver(([entry])=>{if(entry.isIntersecting)loadPhoto();},{rootMargin:'350px 0px'});
   const ready=preload?loadPhoto():Promise.resolve();if(!preload)photoObserver.observe(poster);
   const copy={pt:{label:'POR TRÁS DOS PROJETOS',hello:'Prazer, eu sou o',statement:'Um olhar criativo.<br>Mais de uma forma de fazer.',bio:'Conecto design, desenvolvimento e edição para transformar ideias em experiências digitais com personalidade.',process:'Da primeira referência ao último ajuste, meu trabalho passa pela imagem, pelo código e pelo movimento.',contact:'Vamos criar algo juntos',visualNote:'Três linguagens. A mesma assinatura.',design:'Identidade, direção de arte e interfaces.',code:'Sites que conectam forma e função.',motion:'Edição, ritmo e narrativas visuais.',codeTitle:'Código',motionTitle:'Movimento',availability:'Aberto a novos projetos'},en:{label:'BEHIND THE PROJECTS',hello:"Hi, I'm",statement:'A creative perspective.<br>More than one way to create.',bio:'I connect design, development and editing to turn ideas into digital experiences with personality.',process:'From the first reference to the final adjustment, my work moves through imagery, code and motion.',contact:"Let's create something together",visualNote:'Three languages. One signature.',design:'Identity, art direction and interfaces.',code:'Websites connecting form and function.',motion:'Editing, rhythm and visual narratives.',codeTitle:'Code',motionTitle:'Motion',availability:'Open to new projects'}};
@@ -25,10 +25,12 @@ export function initPersonalProfile({gsap,ScrollTrigger,preload=false}){
   }
   tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>choose(tab.dataset.profileMode),{signal});tab.addEventListener('keydown',event=>{let next;if(['ArrowRight','ArrowDown'].includes(event.key))next=(index+1)%tabs.length;else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();tabs[next].focus();choose(tabs[next].dataset.profileMode);},{signal});});
   function reveal(){if(entrance||reduced.matches)return;entrance=gsap.timeline({defaults:{ease:'power3.out'}})
+    .set(root.querySelectorAll('.profile__name>span'),{overflow:'hidden'},0)
     .from(root.querySelectorAll('.profile__name>span>span'),{yPercent:110,duration:1.15,stagger:.12},0)
     .from(root.querySelectorAll('.profile__hello,.profile__statement,.profile__bio,.profile__contact'),{autoAlpha:0,y:22,duration:.8,stagger:.1},.25)
     .from(poster,{clipPath:'inset(100% 0 0 0)',y:30,duration:1.15,ease:'power3.inOut'},.1)
-    .from(root.querySelector('.profile__visual-note'),{autoAlpha:0,y:10,duration:.6},.9);draw(art[0]);root.dataset.revealed='true';}
+    .from(root.querySelector('.profile__visual-note'),{autoAlpha:0,y:10,duration:.6},.9)
+    .set(root.querySelectorAll('.profile__name>span'),{overflow:'visible'},1.27);draw(art[0]);root.dataset.revealed='true';}
   const trigger=ScrollTrigger.create({trigger:root,start:'top 68%',once:true,onEnter:reveal});
   const observer=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;syncMotion();},{threshold:0});observer.observe(root);
   const tiltX=gsap.quickTo(poster,'rotationX',{duration:.65,ease:'power3.out'}),tiltY=gsap.quickTo(poster,'rotationY',{duration:.65,ease:'power3.out'});

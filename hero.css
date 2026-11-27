@@ -24,7 +24,7 @@ body.hero-in-view .lh-mark{opacity:1;visibility:visible;}
 .lh-touch button{width:46px;height:46px;border:0;border-radius:5px;color:#282c20;background:#0400ff;font:24px/1 sans-serif;cursor:pointer;touch-action:manipulation;}
 .lh-touch button:focus-visible{outline:2px solid #282c20;outline-offset:3px;}
 .lh-surface>.lh-fallback{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;}
-.lh-fallback img{height:90%;width:90%;object-fit:contain;mask-mode:luminance;}
+.lh-fallback img{transform:translateY(6vh);height:90%;width:90%;object-fit:contain;mask-mode:luminance;}
 .lando-hero.is-ready .lh-fallback{display:none;}
 body.hero-in-view .gradual-blur-page{opacity:0;}
 /* The hero owns its centered monogram; the portfolio header returns below it. */
