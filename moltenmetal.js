@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+export let ready=Promise.resolve();
 
 const vertex = `
 varying vec2 vUv;
@@ -218,6 +219,7 @@ function hexToRgb(hex) {
     render();
   }
 
+  ready=renderer.compileAsync(scene,camera);
   if (reduced) {
     render();
   } else {

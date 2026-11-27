@@ -1,0 +1,104 @@
+.profile-cards{display:grid;grid-template-columns:1.05fr .7fr 1.3fr;gap:16px;max-width:1280px;margin:0 auto 56px;}
+.profile-card{min-width:0;position:relative;display:flex;flex-direction:column;padding:24px;border:1px solid #8497ad2b;border-radius:14px;background:linear-gradient(155deg,#101923b3,#0a1019a6);color:#e6ebef;}
+.profile-card__heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 24px;font:500 11px/1.5 Inter,sans-serif;letter-spacing:-.015em;color:#9aabb9;}
+.profile-card__heading svg{flex:none;width:19px;height:19px;}
+.profile-card__index{font:9px 'DM Mono',monospace;color:#607080;}
+.profile-card__note{font:10px/1.65 Inter,sans-serif;color:#748696;margin:12px 0 0;}
+.profile-card--spotify .profile-card__heading svg{color:#1ed760;}
+.profile-card--spotify .profile-card__heading{margin-bottom:9px;}
+.profile-card--spotify [data-spotify-status]{min-height:32px;margin:0 0 12px;}
+.profile-tracks{list-style:none;padding:0;margin:0;}
+.profile-tracks>li+li{border-top:1px solid #a7c0d010;}
+.profile-track{display:flex;gap:11px;align-items:center;min-height:59px;padding:9px 0;color:inherit;text-decoration:none;}
+.profile-track__art{flex:0 0 36px;width:36px;height:36px;display:grid;place-items:center;overflow:hidden;border-radius:5px;background:#b0ccdf0b;color:#6f8598;font:10px 'DM Mono',monospace;}
+.profile-track__art img{display:block;width:100%;height:100%;object-fit:cover;}
+.profile-track__info{flex:1;min-width:0;display:grid;gap:5px;font:10px/1.3 Inter,sans-serif;color:#7e91a1;}
+.profile-track__info strong{font-size:11px;font-weight:500;color:#dce5eb;}.profile-track__info>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.profile-track time{max-width:72px;text-align:right;font:8px/1.6 'DM Mono',monospace;color:#61798d;}
+.profile-track__placeholder{font:10px Inter,sans-serif;color:#62798b;}
+.profile-track[href]:hover .profile-track__info strong{color:#fff;}
+.profile-card__connect{align-self:flex-start;font:10px Inter,sans-serif;color:#9caeff;margin-top:13px;padding:4px 0;border-bottom:1px solid #6d7bc851;}
+.profile-card__connect[hidden]{display:none;}
+.profile-card a:focus-visible{outline:1px solid #6f82ff;outline-offset:4px;}
+.profile-card--experience{justify-content:space-between;}
+.profile-card__experience{display:flex;align-items:baseline;gap:10px;margin:auto 0 8px;}
+.profile-roll{font:500 clamp(75px,7vw,105px)/1.2 Inter,sans-serif;letter-spacing:-.075em;font-variant-numeric:tabular-nums;display:inline-flex;}
+.profile-roll__viewport{display:inline-block;height:1.2em;line-height:1.2em;overflow:hidden;position:relative;user-select:none;}
+.profile-roll__strip{display:flex;flex-direction:column;transform:translateY(-1.2em);}
+.profile-roll__strip>span{height:1.2em;line-height:1.2em;flex:none;}
+.profile-card__years{font:400 15px Inter,sans-serif;color:#8c9fb0;}
+.profile-card__craft{font:500 16px/1.4 Inter,sans-serif;letter-spacing:-.03em;margin:0;}
+.profile-card--github .profile-card__heading{margin-bottom:20px;}
+.profile-github__stats{display:flex;align-items:baseline;gap:10px;margin:0 0 20px;}
+.profile-github__total{font:500 40px/1 Inter,sans-serif;letter-spacing:-.065em;}
+.profile-github__label{font:10px Inter,sans-serif;color:#7f93a4;}
+.profile-github__active{margin-left:auto;display:flex;flex-direction:column;gap:5px;text-align:right;color:#8c9cad;font:9px Inter,sans-serif;}.profile-github__active strong{color:#bbcad6;font:500 15px Inter,sans-serif;}
+.profile-calendar{display:grid;grid-template-rows:repeat(7,minmax(0,1fr));grid-template-columns:repeat(var(--weeks,53),minmax(0,1fr));grid-auto-flow:column;gap:3px;margin:8px 0 13px;}
+.profile-calendar__day,.profile-calendar__pad{aspect-ratio:1;border-radius:1px;min-width:0;}
+.profile-calendar__day{background:#182430;box-shadow:inset 0 0 0 .5px #c0d3e00a;}.profile-calendar__day[data-level="1"]{background:#1b3280;}.profile-calendar__day[data-level="2"]{background:#2c48c2;}.profile-calendar__day[data-level="3"]{background:#4b66ef;}.profile-calendar__day[data-level="4"]{background:#899dff;}.profile-calendar__day:hover{outline:1px solid #b4c1fb;outline-offset:1px;}
+.profile-calendar__caption{display:flex;justify-content:space-between;gap:10px;font:8px/1.6 'DM Mono',monospace;color:#6b8296;}
+.profile-calendar__legend{display:flex;align-items:center;gap:4px;}.profile-calendar__legend i{width:6px;height:6px;border-radius:1px;background:#182430;}.profile-calendar__legend i:nth-of-type(2){background:#1b3280;}.profile-calendar__legend i:nth-of-type(3){background:#2c48c2;}.profile-calendar__legend i:nth-of-type(4){background:#4b66ef;}.profile-calendar__legend i:nth-of-type(5){background:#899dff;}
+.profile-github__footer{margin-top:auto;padding-top:25px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;}.profile-github__footer a{color:#adbce0;font:10px Inter,sans-serif;}.profile-github__footer time{font:8px/1.6 'DM Mono',monospace;color:#62798c;text-align:right;}
+
+
+.profile-spotify-widget{display:block;flex:1;margin:0 -14px;min-height:176px;}
+.profile-spotify-widget[hidden]{display:none;}
+.profile-spotify-widget img{display:block;width:100%;height:auto;min-height:150px;}
+.profile-card--spotify:has([data-spotify-widget]) [data-spotify-status]{min-height:0;margin-bottom:14px;}
+
+.profile-number-roll{display:inline-flex;font-variant-numeric:tabular-nums;}
+.profile-roll__content{display:inline-flex;white-space:pre;}
+.profile-card__since{display:block;margin-top:10px;font:9px/1.5 'DM Mono',monospace;color:#738a9e;}
+
+.profile-cards:focus-visible{outline:1px solid #6f82ff;outline-offset:5px;}
+
+/* All three cards stay completely inside the viewport, including on phones. */
+@media(max-width:1100px){
+ .profile-cards{grid-template-columns:1.05fr .85fr 1.3fr;gap:10px;}
+ .profile-card{padding:16px;}
+ .profile-card__heading{gap:6px;font-size:10px;}
+ .profile-github__stats{flex-wrap:wrap;gap:7px;}
+ .profile-github__active{margin-left:auto;}
+ .profile-calendar{gap:1px;}
+ .profile-calendar__caption{flex-wrap:wrap;font-size:7px;}
+ .profile-github__footer{flex-wrap:wrap;padding-top:15px;}
+ .profile-github__footer time{text-align:left;}
+}
+.profile-tracks--widget{display:none;}
+.profile-widget-track{display:grid;gap:4px;padding:9px 0;color:inherit;}
+.profile-widget-track strong{font-weight:500;}.profile-widget-track span{color:#7e91a1;}
+@media(max-width:700px){
+ .profile-cards{grid-template-columns:1.08fr .84fr 1.08fr;gap:6px;margin-bottom:35px;}
+ .profile-card{padding:10px 7px;border-radius:9px;overflow-wrap:anywhere;}
+ .profile-card__heading,.profile-card--github .profile-card__heading{font-size:8px;line-height:1.4;gap:4px;margin-bottom:12px;align-items:flex-start;}
+ .profile-card__heading svg{width:11px;height:11px;}
+ .profile-card__index{display:none;}
+ .profile-card__note{font-size:7px;line-height:1.6;margin-top:7px;}
+ .profile-card--spotify:has([data-spotify-widget]) [data-spotify-status]{font-size:7px;margin-bottom:8px;}
+ .profile-spotify-widget{margin:0 -4px;min-height:0;}
+ .profile-spotify-widget img{min-height:0;}
+ .profile-card--spotify.has-compact-tracks .profile-spotify-widget{display:none;}
+ .profile-card--spotify.has-compact-tracks .profile-tracks--widget{display:block;}
+ .profile-widget-track{font:7px/1.5 Inter,sans-serif;gap:3px;padding:8px 0;}
+ .profile-widget-track strong{font-size:8px;}
+ .profile-card--experience{min-height:0;}
+ .profile-card__experience{gap:4px;margin:auto 0 10px;flex-wrap:wrap;}
+ .profile-roll{font-size:clamp(30px,10vw,55px);}
+ .profile-card__years{font-size:8px;}
+ .profile-card__craft{font-size:10px;line-height:1.4;}
+ .profile-card__since{font-size:6px;margin-top:8px;}
+ .profile-github__stats{display:grid;grid-template-columns:1fr;gap:5px;margin-bottom:10px;}
+ .profile-github__total{font-size:clamp(23px,7vw,34px);}
+ .profile-github__label{font-size:7px;}
+ .profile-github__active{margin:3px 0 0;text-align:left;font-size:7px;gap:2px;}
+ .profile-github__active strong{font-size:13px;}
+ .profile-calendar{gap:.5px;margin:7px 0;}
+ .profile-calendar__caption{display:block;font-size:6px;}
+ .profile-calendar__legend{gap:2px;margin-top:5px;flex-wrap:wrap;}
+ .profile-calendar__legend i{width:4px;height:4px;}
+ .profile-github__footer{gap:7px;padding-top:13px;}
+ .profile-github__footer a,.profile-github__footer time{font-size:6px;}
+}
+
+.profile-widget-track .profile-widget-track__now{font:400 7px/1.5 Inter,sans-serif;color:#1ed760;letter-spacing:.015em;}
+.profile-card[data-now-playing] [data-spotify-status]{color:#91b8a5;}

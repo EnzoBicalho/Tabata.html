@@ -1,0 +1,5 @@
+.reanimate/
+.env
+.env.*
+!.env.example
+.local/

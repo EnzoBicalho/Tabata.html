@@ -1,0 +1,5 @@
+OGL 1.0.11
+Upstream: https://github.com/oframe/ogl
+Bundled source: https://cdn.jsdelivr.net/npm/ogl@1.0.11/+esm
+License: Unlicense (SPDX identifier), as declared in the published package.json.
+The upstream npm package does not include a separate license file.

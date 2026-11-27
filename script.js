@@ -1,3 +1,7 @@
+import {initPortfolioSections} from './portfolio-sections.js?v=20261126-1';
+import {initStaggeredMenu} from './staggered-menu.js?v=20261126-1';
+import {initPillNav} from './pill-nav.js?v=20261126-1';
+import {startAssetLoader} from "./asset-loader.js?v=20261126-enzo-1";
 gsap.registerPlugin(ScrollTrigger);
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -13,56 +17,8 @@ if (history.scrollRestoration) {
 }
 window.scrollTo(0, 0);
 
-// Preloader
-(function () {
-  const preloader = document.getElementById("preloader");
-  if (!preloader) return;
-
-  const MIN_DURATION = 1500; // mínimo 1.5s (mesmo se cached)
-  const MAX_DURATION = 10000; // máximo 10s
-  const video = preloader.querySelector(".preloader__video");
-
-  // Lock scroll immediately
-  document.body.classList.add("preloader-active");
-
-  const startTime = performance.now();
-
-  const hidePreloader = () => {
-    const elapsed = performance.now() - startTime;
-    const remaining = Math.max(0, MIN_DURATION - elapsed);
-
-    // Se já passou o mínimo, esconde imediatamente
-    // Se não, espera o tempo restante
-    setTimeout(() => {
-      preloader.classList.add("is-hidden");
-      document.body.classList.remove("preloader-active");
-      setTimeout(() => preloader.remove(), 1000);
-    }, remaining);
-  };
-
-  const init = () => {
-    // Se vídeo já tem metadata (cache), inicia imediatamente
-    if (video.readyState >= 1) {
-      video.play().catch(() => {});
-      hidePreloader();
-    } else {
-      // Senão espera metadata ou timeout máximo
-      const metadataTimeout = setTimeout(() => {
-        video.removeEventListener("loadedmetadata", onMetadata);
-        hidePreloader();
-      }, MAX_DURATION);
-
-      const onMetadata = () => {
-        clearTimeout(metadataTimeout);
-        video.play().catch(() => {});
-        hidePreloader();
-      };
-      video.addEventListener("loadedmetadata", onMetadata, { once: true });
-    }
-  };
-
-  init();
-})();
+const pageLoader=startAssetLoader();
+lenis.stop();document.addEventListener('portfolio-loading-complete',()=>lenis.start(),{once:true});
 
 const translations = {
   pt: {
@@ -70,11 +26,17 @@ const translations = {
     "header.contact": "CONTATO",
     "menu.label": "NAVEGAÇÃO",
     "menu.home": "INÍCIO",
-    "menu.about": "SOBRE",
+    "menu.services": "SERVIÇOS",
     "menu.projects": "PROJETOS",
-    "menu.location": "LOCALIZAÇÃO",
+    "menu.location": "SOBRE MIM",
     "menu.contact": "CONTATO",
     "hero.role": "DESIGNER · DEVELOPER · VIDEO EDITOR",
+    "hero.workLabel": "MEU TRABALHO",
+    "hero.projects": "VER PROJETOS",
+    "hero.projectsAria": "Ver projetos",
+    "hero.contact": "ME<br>CONTRATE",
+    "hero.contactAria": "Ir para a seção de contratação",
+    "hero.aboutAria": "Ir para Sobre o Enzo ao selecionar o retrato",
     "hero.small": "criando para quem<br />quer ir mais alto",
     "hero.manifesto": "Ideias que encontram<br />forma, ritmo e altitude.",
     "hero.cta": "VER<br />TRABALHOS",
@@ -134,11 +96,17 @@ const translations = {
     "header.contact": "CONTACT",
     "menu.label": "NAVIGATION",
     "menu.home": "HOME",
-    "menu.about": "ABOUT",
+    "menu.services": "SERVICES",
     "menu.projects": "PROJECTS",
-    "menu.location": "LOCATION",
+    "menu.location": "ABOUT ME",
     "menu.contact": "CONTACT",
     "hero.role": "DESIGNER · DEVELOPER · VIDEO EDITOR",
+    "hero.workLabel": "MY WORK",
+    "hero.projects": "VIEW PROJECTS",
+    "hero.projectsAria": "View projects",
+    "hero.contact": "HIRE<br>ME",
+    "hero.contactAria": "Go to the contact section",
+    "hero.aboutAria": "Go to About Enzo by selecting the portrait",
     "hero.small": "creating for those<br />who want to go higher",
     "hero.manifesto": "Ideas that find<br />form, rhythm and altitude.",
     "hero.cta": "VIEW<br />WORK",
@@ -210,8 +178,13 @@ function applyLanguage(language) {
     const value = translations[activeLanguage][element.dataset.i18n];
     if (value) element.innerHTML = value;
   });
+  document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
+    const value = translations[activeLanguage][element.dataset.i18nAria];
+    if (value) element.setAttribute("aria-label", value);
+  });
   if (languageToggle) {
     languageToggle.querySelector(".language-toggle__active").textContent = activeLanguage.toUpperCase();
+    languageToggle.querySelector("[data-language-copy]").textContent = activeLanguage.toUpperCase();
     languageToggle.setAttribute("aria-label", activeLanguage === "pt" ? "Mudar idioma para inglês" : "Change language to Portuguese");
   }
   safeStorage.set("portfolio-language", activeLanguage);
@@ -222,6 +195,9 @@ languageToggle?.addEventListener("click", () => {
   applyLanguage(activeLanguage === "pt" ? "en" : "pt");
 });
 applyLanguage(activeLanguage);
+initPillNav();
+initStaggeredMenu({gsap,lenis,reduceMotion});
+initPortfolioSections({gsap,ScrollTrigger});
 
 const menuToggle = document.querySelector("#menu-toggle");
 const siteMenu = document.querySelector("#site-menu");
@@ -286,100 +262,6 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-const contactTitle = document.querySelector(".contact__title");
-let contactTitleAnimation;
-let contactTitleObserver = null;
-const buildContactTitleLetters = () => {
-  if (!contactTitle) return [];
-  const lines = [];
-  let current = document.createDocumentFragment();
-  const flushLine = () => {
-    if (current.childNodes.length) {
-      lines.push(current);
-      current = document.createDocumentFragment();
-    }
-  };
-  [...contactTitle.childNodes].forEach((node) => {
-    if (node.nodeName === "BR") {
-      flushLine();
-      return;
-    }
-    current.appendChild(node);
-  });
-  flushLine();
-  contactTitle.textContent = "";
-
-  const splitIntoLetters = (container) => {
-    const textNodes = [];
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) textNodes.push(walker.currentNode);
-    textNodes.forEach((node) => {
-      if (!node.textContent.trim()) return;
-      const letters = document.createDocumentFragment();
-      [...node.textContent].forEach((character) => {
-        const letter = document.createElement("span");
-        letter.className = "contact__letter";
-        letter.textContent = character === " " ? " " : character;
-        letters.appendChild(letter);
-      });
-      node.replaceWith(letters);
-    });
-  };
-
-  lines.forEach((fragment) => {
-    const line = document.createElement("span");
-    line.className = "contact__line";
-    line.appendChild(fragment);
-    contactTitle.appendChild(line);
-    splitIntoLetters(line);
-  });
-
-  return contactTitle.querySelectorAll(".contact__letter");
-};
-
-const animateContactTitle = () => {
-  if (!contactTitle || reduceMotion) return;
-  contactTitleAnimation?.kill();
-  contactTitleAnimation = null;
-  if (contactTitleObserver) {
-    contactTitleObserver.disconnect();
-    contactTitleObserver = null;
-  }
-
-  const letters = buildContactTitleLetters();
-  // Estado inicial BEM mais forte: letras subindo de baixo, com blur alto,
-  // rota\u00e7\u00e3o e leve escala \u2014 reveladas por visibilidade (IntersectionObserver),
-  // igual ao mecanismo anterior que funcionava, s\u00f3 com estilo mais dram\u00e1tico.
-  gsap.set(letters, {
-    yPercent: 160,
-    opacity: 0,
-    rotate: 12,
-    scale: 1.25,
-    filter: "blur(12px)",
-  });
-
-  contactTitleObserver = new IntersectionObserver((entries, obs) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        contactTitleAnimation = gsap.to(letters, {
-          yPercent: 0,
-          rotate: 0,
-          scale: 1,
-          opacity: 1,
-          filter: "blur(0px)",
-          stagger: 0.07,
-          duration: 1.1,
-          ease: "power3.out",
-        });
-        obs.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.25 });
-  contactTitleObserver.observe(contactTitle);
-};
-animateContactTitle();
-document.addEventListener("portfolio-language-change", animateContactTitle);
-
 // Project images fade in over the CSS-art fallback once the files exist.
 document.querySelectorAll(".project__image").forEach((image) => {
   const reveal = () => image.classList.add("is-loaded");
@@ -396,23 +278,14 @@ document.querySelectorAll("[data-cloud-src]").forEach((cloud) => {
   image.src = source;
 });
 
-// Cursor personalizado — apenas a bolinha que segue o ponteiro.
-const customCursor = document.querySelector(".custom-cursor");
+// User cursor: independent spring followers for the pointer and name tag.
 const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-
-if (customCursor && finePointer.matches) {
-  document.body.classList.add("has-custom-cursor");
-  const moveCursorX = gsap.quickTo(customCursor, "x", { duration: 0.12, ease: "power3.out" });
-  const moveCursorY = gsap.quickTo(customCursor, "y", { duration: 0.12, ease: "power3.out" });
-
-  window.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "touch") return;
-    customCursor.classList.add("is-visible");
-    moveCursorX(event.clientX);
-    moveCursorY(event.clientY);
-  });
-  window.addEventListener("pointerleave", () => customCursor.classList.remove("is-visible"));
-}
+import('./user-cursor.js?v=20261126-4').then(async({initUserCursor})=>{
+  const cursor=initUserCursor();
+  const {initAIWorkflow}=await import('./ai-workflow.js?v=20261126-6');
+  initAIWorkflow({gsap,ScrollTrigger,cursor});
+})
+  .catch(error=>console.warn('User cursor unavailable; native cursor retained.',error));
 
 // ClickSpark — faíscas no clique em qualquer ponto da página.
 (function initClickSpark() {
@@ -483,6 +356,7 @@ if (customCursor && finePointer.matches) {
   rafId = requestAnimationFrame(draw);
 
   window.addEventListener("pointerdown", (event) => {
+    if (event.target.closest?.(".lando-hero")) return;
     const x = event.clientX;
     const y = event.clientY;
     const now = performance.now();
@@ -496,12 +370,11 @@ if (customCursor && finePointer.matches) {
   });
 })();
 
-const heroTitleSpans = document.querySelectorAll(".hero__title span");
 
 if (!reduceMotion) {
   // Efeito de magnetização (fiel ao componente React): cada botão/link é atraído
   // pelo ponteiro quando este entra numa zona de `padding` ao redor do elemento.
-  const magnetSelector = ".round-link, .header-contact, .language-toggle, .menu-toggle, .text-link, .world__info-links a, .contact-card__option, .contact-card__close, .cssbuttons-io-button, .location-trigger, .brand, .site-menu a, .project__link, .contact__footer a";
+  const magnetSelector = ".round-link, .header-contact, .language-toggle, .menu-toggle, .text-link, .world__info-links a, .contact-card__option, .contact-card__close, .cssbuttons-io-button, .location-trigger, .site-menu a, .project__link, .contact__footer a";
   const magnetTargets = document.querySelectorAll(magnetSelector);
   const PADDING = 90;
   const STRENGTH = 2;
@@ -531,616 +404,19 @@ if (!reduceMotion) {
     });
   });
   gsap.to(".round-link > .glass-surface__content", { y: -3, duration: 2.6, ease: "sine.inOut", repeat: -1, yoyo: true });
-  gsap.to(".earth-stage__pointer", { x: 5, duration: 1.8, ease: "sine.inOut", repeat: -1, yoyo: true });
-  gsap.to(".world__grid", { backgroundPosition: "70px 70px", duration: 22, ease: "none", repeat: -1 });
-  gsap.to(".earth-stage__reticle", { rotation: 360, duration: 75, ease: "none", repeat: -1 });
-  gsap.to(".earth-stage__marker", { scale: 1.16, opacity: 0.72, duration: 1.45, ease: "sine.inOut", repeat: -1, yoyo: true });
-  gsap.to(".world__copy h2 em", { textShadow: "0 0 1.4rem rgba(192,214,223,.32)", duration: 2.2, ease: "sine.inOut", repeat: -1, yoyo: true });
 }
 
 const header = document.querySelector(".site-header");
-const heroItems = document.querySelectorAll(".hero > *:not(.cloud-layer):not(.hero-bg-video):not(.hero-bg-video--ai):not(.hero__ai-skills)");
 
 if (header) gsap.fromTo(header, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out", onComplete: () => gsap.set(header, { clearProps: "transform" }) });
 
-// Hero frame-sequence scrub + pin (dual sequence: frames + frames_AI)
-if (!reduceMotion) {
-  const heroImg = document.querySelector(".hero-bg-video");
-  const heroImgAI = document.querySelector(".hero-bg-video--ai");
-  const heroSection = document.querySelector(".hero");
+// Hero replacement stays isolated from the remaining portfolio animations.
+pageLoader.track('Hero 3D',()=>import('./hero.js?v=20261126-enzo-1').then(({initHero})=>initHero({gsap,ScrollTrigger,lenis,reduceMotion})))
+  .catch(error=>console.error('Hero initialization failed; fallback remains visible.',error));
 
-  if (heroImg && heroImgAI && heroSection) {
-    // Config sequences
-    const SEQ1 = { frames: 167, prefix: "assets/frames/frame_", ext: ".png", pad: 6 };
-    const SEQ2 = { frames: 150, prefix: "assets/frames_AI/frame_", ext: ".png", pad: 6 };
-    const TOTAL_FRAMES = SEQ1.frames + SEQ2.frames;
+pageLoader.track('Project textures',()=>import('./flex-carousel.js?v=20261126-preload-1').then(({initProjectsCarousel})=>initProjectsCarousel()).then(api=>api?.ready)).catch(error=>console.warn('Project carousel unavailable; grid retained.',error));
 
-    // Preload both sequences
-    const frameCache1 = new Array(SEQ1.frames);
-    const frameCache2 = new Array(SEQ2.frames);
-    let loadedCount = 0;
-
-    function preloadFrames(cache, config) {
-      return new Promise((resolve) => {
-        for (let i = 1; i <= config.frames; i++) {
-          const img = new Image();
-          const num = config.pad ? String(i).padStart(config.pad, "0") : String(i).padStart(3, "0");
-          img.src = `${config.prefix}${num}${config.ext}`;
-          img.decoding = "async";
-          img.onload = img.onerror = () => {
-            loadedCount++;
-            if (loadedCount === TOTAL_FRAMES) resolve();
-          };
-          cache[i - 1] = img;
-        }
-      });
-    }
-
-    // Frame swap function - switches between sequences based on progress
-    const fadeOutTargets = [".hero__topline", ".hero__title-wrap", ".hero__manifesto", ".hero__number", ".round-link"];
-    const fadeOutEls = fadeOutTargets.map(sel => document.querySelector(sel)).filter(Boolean);
-
-    const updateFrame = (self) => {
-      const progress = self.progress; // 0 a 1
-
-      // ===== TEXT OPACITY CONTROL =====
-      // Visível: 0 a 0.35
-      // Fade out: 0.35 a 0.55
-      // Invisível: 0.55 a 1
-      let textOpacity = 1;
-      if (progress > 0.35 && progress < 0.55) {
-        textOpacity = 1 - (progress - 0.35) / 0.2; // 1 → 0
-      } else if (progress >= 0.55) {
-        textOpacity = 0;
-      }
-      fadeOutEls.forEach(el => { if (el) el.style.opacity = textOpacity; });
-
-      // AI Skills visibility
-      const aiSkills = document.querySelector(".hero__ai-skills");
-      if (aiSkills) {
-        if (progress > 0.55) aiSkills.classList.add("is-visible");
-        else aiSkills.classList.remove("is-visible");
-      }
-
-      // Cross-fade zone: 0.45 a 0.55 (10% do scroll total)
-      const CROSSFADE_START = 0.45;
-      const CROSSFADE_END = 0.55;
-
-      if (progress < CROSSFADE_START) {
-        // SEQ1 apenas (0 a 0.45)
-        const localProgress = progress / CROSSFADE_START; // 0 a 1
-        const frameIndex = Math.min(SEQ1.frames - 1, Math.floor(localProgress * SEQ1.frames));
-        const frame = frameCache1[frameIndex];
-        if (frame && frame.complete) {
-          heroImg.style.opacity = 1;
-          heroImgAI.style.opacity = 0;
-          if (heroImg.src !== frame.src) heroImg.src = frame.src;
-        }
-      } else if (progress > CROSSFADE_END) {
-        // SEQ2 apenas (0.55 a 1)
-        const localProgress = (progress - CROSSFADE_END) / (1 - CROSSFADE_END); // 0 a 1
-        const frameIndex = Math.min(SEQ2.frames - 1, Math.floor(localProgress * SEQ2.frames));
-        const frame = frameCache2[frameIndex];
-        if (frame && frame.complete) {
-          heroImg.style.opacity = 0;
-          heroImgAI.style.opacity = 1;
-          if (heroImgAI.src !== frame.src) heroImgAI.src = frame.src;
-        }
-      } else {
-        // CROSSFADE (0.45 a 0.55)
-        const crossProgress = (progress - CROSSFADE_START) / (CROSSFADE_END - CROSSFADE_START); // 0 a 1
-
-        // SEQ1 fade out (últimos frames)
-        const seq1FrameIndex = Math.min(SEQ1.frames - 1, Math.floor((1 - crossProgress) * SEQ1.frames));
-        const frame1 = frameCache1[seq1FrameIndex];
-        if (frame1 && frame1.complete) {
-          heroImg.style.opacity = 1 - crossProgress;
-          if (heroImg.src !== frame1.src) heroImg.src = frame1.src;
-        }
-
-        // SEQ2 fade in (primeiros frames)
-        const seq2FrameIndex = Math.min(SEQ2.frames - 1, Math.floor(crossProgress * SEQ2.frames));
-        const frame2 = frameCache2[seq2FrameIndex];
-        if (frame2 && frame2.complete) {
-          heroImgAI.style.opacity = crossProgress;
-          if (heroImgAI.src !== frame2.src) heroImgAI.src = frame2.src;
-        }
-      }
-    };
-
-    // Configura pin nativo via ScrollTrigger com onUpdate
-    const st = ScrollTrigger.create({
-      trigger: heroSection,
-      start: "top top",
-      end: "+=400%", // mais espaço para duas sequências
-      pin: true,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      onUpdate: updateFrame,
-    });
-
-    // Inicia preload das duas sequências em paralelo
-    Promise.all([
-      preloadFrames(frameCache1, SEQ1),
-      preloadFrames(frameCache2, SEQ2),
-    ]).then(() => {
-      console.log("[Hero] Frames loaded, starting text animations");
-
-      // ===== HERO TEXT ANIMATIONS (scroll-driven) =====
-      // Garante estado inicial invisível para .from() funcionar
-      gsap.set([".hero__topline", ".hero__title span", ".hero__small", ".hero__manifesto", ".hero__number", ".round-link"], { opacity: 0 });
-
-      // Intro timeline (entrada inicial)
-      const heroTl = gsap.timeline({ defaults: { ease: "power4.out" } });
-      heroTl
-        .from(".hero__topline", { opacity: 0, y: -18, duration: 0.8 })
-        .from(".hero__title span", { opacity: 0, yPercent: 110, duration: 1.1, stagger: 0.12, ease: "power4.out" }, "-=0.4")
-        .from(".hero__small", { opacity: 0, y: 20, duration: 0.8 }, "-=0.7")
-        .from(".hero__manifesto", { opacity: 0, y: 20, duration: 0.8 }, "-=0.6")
-        .from(".hero__number", { opacity: 0, x: -16, duration: 0.7 }, "-=0.6")
-        .from(".round-link", { opacity: 0, scale: 0.8, duration: 0.7, ease: "back.out(1.6)" }, "-=0.5");
-
-      // Scroll-driven animations (parallax, skew, etc)
-      gsap.to(".hero__title", {
-        skewY: -1,
-        ease: "none",
-        scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1 }
-      });
-
-      // Parallax no título
-      gsap.to(".hero__title-wrap", {
-        yPercent: -30,
-        ease: "none",
-        scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1.2 }
-      });
-
-      // ===== AI SKILLS REVEAL (aparece na segunda metade) =====
-      const aiSkills = document.querySelector(".hero__ai-skills");
-      if (aiSkills) {
-        console.log("[Hero] AI Skills element found");
-        // Mostra quando entra na segunda metade (progress > 0.55)
-        ScrollTrigger.create({
-          trigger: ".hero",
-          start: "top top",
-          end: "+=400%",
-          onUpdate: (self) => {
-            if (self.progress > 0.55) {
-              aiSkills.classList.add("is-visible");
-            } else {
-              aiSkills.classList.remove("is-visible");
-            }
-          }
-        });
-
-        // Animação escalonada dos itens
-        const aiItems = aiSkills.querySelectorAll(".hero__ai-list li");
-        gsap.set(aiItems, { opacity: 0, x: -20 });
-      }
-    });
-  }
-}
-
-document.querySelectorAll("[data-speed]").forEach((layer) => {
-  gsap.to(layer, { yPercent: Number(layer.dataset.speed) * -100, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1.2 } });
-});
-
-const projectListEl = document.querySelector(".project-list");
-const projectItems = gsap.utils.toArray(".project");
-const introEl = document.querySelector(".project-intro");
-if (projectListEl && projectItems.length > 1) {
-    let projectPositions = [];
-    let projectStack = [];
-    const measureProjectPositions = () => {
-      projectItems.forEach((p) => gsap.set(p, { clearProps: "x,y,rotation,scale,zIndex,opacity" }));
-      const listRect = projectListEl.getBoundingClientRect();
-      projectPositions = projectItems.map((p) => {
-        const r = p.getBoundingClientRect();
-        return { x: r.left - listRect.left, y: r.top - listRect.top };
-      });
-    };
-    const applyProjectStack = () => {
-      measureProjectPositions();
-      const listRect = projectListEl.getBoundingClientRect();
-      const cardWidth = projectItems[0].getBoundingClientRect().width;
-      const cardHeight = projectItems[0].getBoundingClientRect().height;
-      const stackX = (listRect.width - cardWidth) / 2;
-      const stackY = projectPositions[0].y + listRect.height * 0.4;
-      projectStack = projectItems.map((p, i) => ({
-        x: stackX - projectPositions[i].x,
-        y: stackY - projectPositions[i].y,
-        rotation: 0,
-        scale: 1,
-        opacity: 0,
-      }));
-      projectItems.forEach((p, i) => {
-        gsap.set(p, {
-          x: projectStack[i].x,
-          y: projectStack[i].y,
-          rotation: projectStack[i].rotation,
-          scale: projectStack[i].scale,
-          opacity: projectStack[i].opacity,
-          pointerEvents: "none",
-          zIndex: projectItems.length - i,
-        });
-      });
-      if (introEl) {
-        gsap.set(introEl, {
-          left: stackX + cardWidth / 2,
-          top: stackY + cardHeight / 2,
-          xPercent: -50,
-          yPercent: -50,
-        });
-      }
-    };
-    applyProjectStack();
-    let projectDispersion = null;
-
-    const buildProjectTimeline = () => {
-      if (projectDispersion) {
-        projectDispersion.scrollTrigger?.kill();
-        projectDispersion.kill();
-      }
-      projectDispersion = gsap.timeline({
-        scrollTrigger: {
-          trigger: projectListEl,
-          start: () => `top ${Math.round(window.innerHeight * 0.45 - projectStack[0].y)}px`,
-          end: "+=200%",
-          scrub: 1.5,
-          pin: ".projects",
-        },
-      });
-      projectItems.forEach((p, i) => {
-        const from = projectStack[i];
-        const side = i % 2 ? 1 : -1;
-        projectDispersion.set(p, {
-          x: from.x,
-          y: from.y,
-          rotation: from.rotation,
-          scale: from.scale,
-          opacity: from.opacity,
-          pointerEvents: "none",
-          zIndex: projectItems.length - i,
-        }, 0);
-        projectDispersion.to(p, {
-          keyframes: [
-            {
-              x: from.x,
-              y: from.y,
-              rotation: from.rotation,
-              scale: from.scale,
-              opacity: from.opacity,
-              pointerEvents: "none",
-              duration: 0.001,
-              ease: "none",
-            },
-            {
-              x: from.x * 0.4,
-              y: from.y * 0.35 + 130,
-              rotation: side * 12,
-              scale: 1,
-              opacity: 1,
-              pointerEvents: "auto",
-              duration: 0.5,
-              ease: "power2.in",
-            },
-            {
-              x: 0,
-              y: 0,
-              rotation: 0,
-              scale: 1,
-              opacity: 1,
-              pointerEvents: "auto",
-              zIndex: projectItems.length - i,
-              duration: 0.4,
-              ease: "power3.out",
-            },
-          ],
-          immediateRender: false,
-        }, (i * 0.75) / projectItems.length);
-      });
-
-      if (introEl) {
-        projectDispersion.to(introEl, {
-          opacity: 0,
-          scale: 0.88,
-          duration: 0.18,
-          ease: "power2.out",
-        }, 0);
-      }
-    };
-    buildProjectTimeline();
-
-    // ============================================================
-    // Project section video sequence (frames_PROJETO) - scrub on scroll
-    // ============================================================
-    if (!reduceMotion) {
-      const projectsVideoFrame = document.querySelector(".projects__video-frame");
-      const projectsSection = document.querySelector(".projects");
-
-      if (projectsVideoFrame && projectsSection && projectListEl && projectStack.length > 0) {
-        // Config sequence - 300 frames
-        const SEQ_PROJETO = { frames: 300, prefix: "assets/frames_PROJETO/frame_", ext: ".png", pad: 6 };
-
-        // Preload frames
-        const frameCacheProjeto = new Array(SEQ_PROJETO.frames);
-        let loadedProjetoCount = 0;
-
-        function preloadFramesProjeto(cache, config) {
-          return new Promise((resolve) => {
-            for (let i = 1; i <= config.frames; i++) {
-              const img = new Image();
-              const num = config.pad ? String(i).padStart(config.pad, "0") : String(i).padStart(3, "0");
-              img.src = `${config.prefix}${num}${config.ext}`;
-              img.decoding = "async";
-              img.onload = img.onerror = () => {
-                loadedProjetoCount++;
-                if (loadedProjetoCount === SEQ_PROJETO.frames) resolve();
-              };
-              cache[i - 1] = img;
-            }
-          });
-        }
-
-        // Mostra primeiro frame IMEDIATAMENTE ao carregar (antes do scroll)
-        const showFirstFrame = () => {
-          const firstFrame = frameCacheProjeto[0];
-          if (firstFrame && firstFrame.complete) {
-            projectsVideoFrame.src = firstFrame.src;
-            projectsVideoFrame.style.opacity = 1;
-            projectsVideoFrame.classList.add("is-loaded");
-          }
-        };
-
-        const updateProjectsFrame = (self) => {
-          const progress = self.progress; // 0 a 1
-
-          // Video sequence plays during the pinned section scroll (0 to 1)
-          // Start showing frames after project cards start dispersing (~0.15 progress)
-          // Stay on last frame until end of scroll (no fade out)
-          const VIDEO_START = 0.15;
-
-          if (progress < VIDEO_START) {
-            // Antes do VIDEO_START: mantém o primeiro frame visível
-            return;
-          }
-
-          projectsVideoFrame.style.opacity = 1;
-          // Sem fade-in: adiciona classe sem transição
-          projectsVideoFrame.classList.add("is-loaded");
-
-          // Progress from VIDEO_START to 1.0 maps to frames 0 to last
-          const localProgress = (progress - VIDEO_START) / (1 - VIDEO_START); // 0 a 1
-          const frameIndex = Math.min(SEQ_PROJETO.frames - 1, Math.floor(localProgress * SEQ_PROJETO.frames));
-          const frame = frameCacheProjeto[frameIndex];
-          if (frame && frame.complete) {
-            if (projectsVideoFrame.src !== frame.src) {
-              projectsVideoFrame.src = frame.src;
-            }
-          }
-        };
-
-        // ScrollTrigger para a seção de projetos (usa o mesmo trigger do projectDispersion)
-        const stProjects = ScrollTrigger.create({
-          trigger: projectListEl,
-          start: () => `top ${Math.round(window.innerHeight * 0.45 - projectStack[0].y)}px`,
-          end: "+=200%",
-          scrub: 1.5,
-          onUpdate: updateProjectsFrame,
-        });
-
-        // Preload frames
-        preloadFramesProjeto(frameCacheProjeto, SEQ_PROJETO).then(() => {
-          console.log("[Projects] Frames_PROJETO loaded");
-          showFirstFrame(); // Mostra primeiro frame imediatamente
-        });
-      }
-    }
-
-    // ============================================================
-    // About section video sequence (framesABOUT) - scrub on scroll
-    // ============================================================
-    if (!reduceMotion) {
-      const aboutVideoFrame = document.querySelector(".about__video-frame");
-      const aboutSection = document.querySelector(".about");
-
-      if (aboutVideoFrame && aboutSection) {
-        // Config sequence - 336 frames
-        const SEQ_ABOUT = { frames: 336, prefix: "assets/framesABOUT/frame_", ext: ".png", pad: 6 };
-
-        // Preload frames
-        const frameCacheAbout = new Array(SEQ_ABOUT.frames);
-        let loadedAboutCount = 0;
-
-        function preloadFramesAbout(cache, config) {
-          return new Promise((resolve) => {
-            for (let i = 1; i <= config.frames; i++) {
-              const img = new Image();
-              const num = config.pad ? String(i).padStart(config.pad, "0") : String(i).padStart(3, "0");
-              img.src = `${config.prefix}${num}${config.ext}`;
-              img.decoding = "async";
-              img.onload = img.onerror = () => {
-                loadedAboutCount++;
-                if (loadedAboutCount === SEQ_ABOUT.frames) resolve();
-              };
-              cache[i - 1] = img;
-            }
-          });
-        }
-
-        // Mostra primeiro frame IMEDIATAMENTE ao carregar (antes do scroll)
-        const showFirstFrameAbout = () => {
-          const firstFrame = frameCacheAbout[0];
-          if (firstFrame && firstFrame.complete) {
-            aboutVideoFrame.src = firstFrame.src;
-            aboutVideoFrame.style.opacity = 1;
-            aboutVideoFrame.classList.add("is-loaded");
-          }
-        };
-
-        const updateAboutFrame = (self) => {
-          const progress = self.progress; // 0 a 1
-
-          // Video sequence plays during the about section scroll
-          const VIDEO_START = 0.1;
-
-          if (progress < VIDEO_START) {
-            // Antes do VIDEO_START: mantém o primeiro frame visível
-            return;
-          }
-
-          aboutVideoFrame.style.opacity = 1;
-          // Sem fade-in: adiciona classe sem transição
-          aboutVideoFrame.classList.add("is-loaded");
-
-          // Progress from VIDEO_START to 1.0 maps to frames 0 to last
-          const localProgress = (progress - VIDEO_START) / (1 - VIDEO_START); // 0 a 1
-          const frameIndex = Math.min(SEQ_ABOUT.frames - 1, Math.floor(localProgress * SEQ_ABOUT.frames));
-          const frame = frameCacheAbout[frameIndex];
-          if (frame && frame.complete) {
-            if (aboutVideoFrame.src !== frame.src) {
-              aboutVideoFrame.src = frame.src;
-            }
-          }
-        };
-
-        // ScrollTrigger para a seção about
-        const stAbout = ScrollTrigger.create({
-          trigger: aboutSection,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.5,
-          onUpdate: updateAboutFrame,
-        });
-
-        // Preload frames
-        preloadFramesAbout(frameCacheAbout, SEQ_ABOUT).then(() => {
-          console.log("[About] Frames_ABOUT loaded");
-          showFirstFrameAbout(); // Mostra primeiro frame imediatamente
-        });
-      }
-    }
-
-    const refreshProjectLayout = () => {
-      applyProjectStack();
-      buildProjectTimeline();
-      ScrollTrigger.refresh();
-    };
-
-    window.addEventListener("load", refreshProjectLayout);
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(refreshProjectLayout);
-    }
-
-    let resizeTimer;
-    window.addEventListener("resize", () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(refreshProjectLayout, 200);
-    });
-  }
-
-  // A seção Serviços é revelada por visibilidade (IntersectionObserver) no
-  // bloco dedicado abaixo — onView(...) em volta de .service / .service-list.
-  // Removido o ScrollTrigger antigo que conflitava com esse reveal e não
-  // disparava de forma confiável por causa do pin da seção de Projetos.
-  gsap.to(".contact__sky", { yPercent: -12, ease: "none", scrollTrigger: { trigger: ".contact", start: "top bottom", end: "bottom top", scrub: 1 } });
-  gsap.to(".earth-stage", { yPercent: -5, ease: "none", scrollTrigger: { trigger: ".world", start: "top bottom", end: "bottom top", scrub: 1.4 } });
-
-  // Reveals de World/Contact baseados em visibilidade (sobrevivem ao pin de Projetos)
-  const worldInfo = document.querySelector(".world__info");
-  if (worldInfo) {
-    const infoLines = worldInfo.querySelectorAll(".world__info-line, .world__info-links a");
-    gsap.set(worldInfo, { y: 45, opacity: 0 });
-    gsap.set(infoLines, { x: 28, opacity: 0 });
-    onView(worldInfo, () => {
-      gsap.to(worldInfo, { y: 0, opacity: 1, duration: 1, ease: "power3.out" });
-      gsap.to(infoLines, { x: 0, opacity: 1, stagger: 0.08, duration: 0.65, ease: "power3.out" });
-    }, { threshold: 0.2 });
-  }
-  const earthStage = document.querySelector(".earth-stage");
-  if (earthStage) {
-    const earthBits = earthStage.querySelectorAll(".earth-stage__status, .earth-stage__hint, .earth-stage__pointer");
-    gsap.set(earthBits, { y: 18, opacity: 0 });
-    onView(earthStage, () => {
-      gsap.to(earthBits, { y: 0, opacity: 1, stagger: 0.12, duration: 0.8, ease: "back.out(1.5)" });
-    }, { threshold: 0.2 });
-  }
-
-  // Lazy-load do globo 3D (three.js + globe.js): só importa quando a seção
-  // #world chega perto da viewport. Evita ~600KB de JS no carregamento inicial.
-  const worldSection = document.querySelector("#world");
-  if (worldSection && "IntersectionObserver" in window) {
-    let globeLoaded = false;
-    const globeObserver = new IntersectionObserver((entries, obs) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && !globeLoaded) {
-          globeLoaded = true;
-          import("./globe.js?v=20260819-10").catch(() => {});
-          obs.disconnect();
-        }
-      });
-    }, { rootMargin: "600px 0px" });
-    globeObserver.observe(worldSection);
-  } else if (worldSection) {
-    import("./globe.js?v=20260819-10").catch(() => {});
-  }
-
-window.addEventListener("pointermove", (event) => {
-  if (window.innerWidth > 700 && window.heroTitleSpans && heroTitleSpans.length) {
-    const { left, top, width, height } = heroTitleSpans[0].parentElement.getBoundingClientRect();
-    const x = (event.clientX - left) / width - 0.5;
-    const y = (event.clientY - top) / height - 0.5;
-    const distance = Math.hypot(x, y) * 2;
-    const intensity = Math.max(0, 1 - distance) * 0.55;
-
-    heroTitleSpans.forEach((span, index) => {
-      const offset = (index - 1) * 0.22;
-      const phase = Math.min(1, Math.abs(intensity + offset));
-      gsap.set(span, {
-        x: x * 14 * phase,
-        y: y * 7 * phase,
-        skewX: x * 5 * phase,
-        skewY: y * 3 * phase,
-        scale: 1 + phase * 0.05,
-        rotation: x * y * 4,
-        force3D: true,
-      });
-    });
-  }
-});
-
-window.addEventListener("pointerleave", () => {
-  if (heroTitleSpans && heroTitleSpans.length) {
-    gsap.to(heroTitleSpans, {
-      x: 0,
-      y: 0,
-      skewX: 0,
-      skewY: 0,
-      scale: 1,
-      rotation: 0,
-      filter: "blur(0px)",
-      duration: 1.15,
-      ease: "elastic.out(1, 0.42)",
-    });
-  }
-});
-
-const locationTrigger = document.querySelector("[data-location-trigger]");
-locationTrigger?.addEventListener("click", () => {
-  document.body.classList.add("world-opened");
-  lenis.scrollTo("#world", { offset: 0, duration: 1.35 });
-});
-
-if (window.ScrollTrigger) {
-  ScrollTrigger.create({
-    trigger: "#world",
-    start: "top 72%",
-    end: "bottom 20%",
-    onEnter: () => document.body.classList.add("world-opened"),
-    onEnterBack: () => document.body.classList.add("world-opened"),
-    onLeaveBack: () => document.body.classList.remove("world-opened"),
-    onLeave: () => document.body.classList.remove("world-opened"),
-  });
-}
+pageLoader.track('Profile photo GPU',()=>import('./personal-profile.js?v=20261126-live-refresh-1').then(({initPersonalProfile})=>initPersonalProfile({gsap,ScrollTrigger,preload:true})).then(api=>api?.ready)).catch(error=>console.warn('Profile motion unavailable; content remains visible.',error));
 
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
   link.addEventListener("click", (event) => {
@@ -1396,106 +672,6 @@ if (!reduceMotion) {
   });
 }
 
-// --- About: parágrafo + link + órbitas entram com stagger (por visibilidade) ---
-if (!reduceMotion) {
-  const aboutContent = document.querySelector(".about__content");
-  if (aboutContent) {
-    gsap.set(aboutContent.children, { opacity: 0, y: 34 });
-    onView(aboutContent, () => gsap.to(aboutContent.children, {
-      opacity: 1,
-      y: 0,
-      stagger: 0.14,
-      duration: 0.9,
-      ease: "power3.out",
-    }), { threshold: 0.2 });
-  }
-  const aboutOrbits = document.querySelector(".about__orbits");
-  if (aboutOrbits) {
-    gsap.set(aboutOrbits, { opacity: 0, scale: 0.7, rotate: -40 });
-    onView(aboutOrbits, () => gsap.to(aboutOrbits, {
-      opacity: 1,
-      scale: 1,
-      rotate: 0,
-      duration: 1.4,
-      ease: "power3.out",
-    }), { threshold: 0.2 });
-  }
-}
-
-// --- Services: reveal rico por palavra + glow de borda no hover + tilt ---
-(function () {
-  const services = document.querySelectorAll(".service");
-  if (!services.length) return;
-
-  if (!reduceMotion) {
-    // Título da seção: reveal palavra-por-palavra com blur/rotação (scrub)
-    const introTitle = document.querySelector(".services__intro h2");
-    if (introTitle) scrollReveal(introTitle, { baseRotation: 4, blurStrength: 4, wordEnd: "bottom 75%" });
-    // Texto de corpo da seção (igual About: sobe com stagger)
-    const introCopy = document.querySelector(".services__intro p");
-    if (introCopy) {
-      gsap.set(introCopy, { opacity: 0, y: 34 });
-      onView(introCopy, () => gsap.to(introCopy, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }), { threshold: 0.3 });
-    }
-    // Container da lista (sobe conforme fica visível) — baseado em visibilidade,
-    // não em ScrollTrigger (sobrevive ao pin da seção de Projetos).
-    const serviceList = document.querySelector(".service-list");
-    if (serviceList) {
-      gsap.set(serviceList, { opacity: 0, y: -20 });
-      onView(serviceList, () => gsap.to(serviceList, {
-        opacity: 1, y: 0, duration: 0.6, ease: "power2.out",
-      }), { threshold: 0.2 });
-    }
-    // Cada serviço: efeito criativo "flip de carta" (vira da esquerda em perspectiva)
-    services.forEach((service) => {
-      gsap.set(service, { rotationY: -92, opacity: 0, transformPerspective: 900, transformOrigin: "left center" });
-      onView(service, () => {
-        gsap.to(service,
-          { rotationY: 0, opacity: 1, duration: 1, ease: "power3.out" }
-        );
-        // Título e copy revelam por palavra com sweep (efeito "estica da esquerda")
-        const h3 = service.querySelector(".service__body h3");
-        const copy = service.querySelector(".service__body p");
-        const cols = [h3, copy].filter(Boolean).map(splitWords).flat();
-        gsap.set(cols, { scaleX: 0, opacity: 0, transformOrigin: "left center" });
-        gsap.to(cols, {
-          scaleX: 1, opacity: 1, stagger: 0.02, duration: 0.6, ease: "power2.out",
-        });
-        const tags = service.querySelector(".service__tags")?.children || [];
-        gsap.set(tags, { opacity: 0, scale: 0.6, y: 10 });
-        gsap.to(tags, {
-          opacity: 1, scale: 1, y: 0, stagger: 0.06, duration: 0.5, ease: "back.out(2)",
-        });
-      }, { threshold: 0.25 });
-    });
-  }
-
-  if (finePointer.matches && !reduceMotion) {
-    services.forEach((service) => {
-      const xTo = gsap.quickTo(service, "x", { duration: 0.5, ease: "power3.out" });
-      service.addEventListener("pointermove", (e) => {
-        const b = service.getBoundingClientRect();
-        xTo((e.clientX - (b.left + b.width / 2)) * 0.04);
-      });
-      service.addEventListener("pointerleave", () => gsap.to(service, { x: 0, duration: 0.6, ease: "elastic.out(1, .5)" }));
-    });
-  }
-  if (!reduceMotion) {
-    services.forEach((service) => {
-      service.addEventListener("pointerenter", () => {
-        gsap.to(service, { backgroundColor: "rgba(192,214,223,.08)", duration: 0.3 });
-        const index = service.querySelector(".service__index");
-        if (index) gsap.to(index, { color: "#020202", scale: 1.08, duration: 0.3 });
-      });
-      service.addEventListener("pointerleave", () => {
-        gsap.to(service, { backgroundColor: "rgba(192,214,223,0)", duration: 0.4 });
-        const index = service.querySelector(".service__index");
-        if (index) gsap.to(index, { color: "rgba(192,214,223,.55)", scale: 1, duration: 0.4 });
-      });
-    });
-  }
-})();
-
 // --- Project cards: tilt 3D magnético no hover ---
 (function () {
   if (reduceMotion || !finePointer.matches) return;
@@ -1518,30 +694,6 @@ if (!reduceMotion) {
   });
 })();
 
-// --- Contact: texto com reveal palavra-por-palavra (scrub) + corpo com stagger ---
-if (!reduceMotion) {
-  const pretitle = document.querySelector(".contact__pretitle");
-  if (pretitle) scrollReveal(pretitle, { baseRotation: 0, blurStrength: 3, wordEnd: "bottom 80%" });
-  // Texto de corpo da seção (igual About: sobe com stagger)
-  const contactBody = document.querySelector(".contact__cta");
-  const footer = document.querySelector(".contact__footer");
-  const bodyEls = [contactBody, footer].filter(Boolean);
-  if (bodyEls.length) {
-    gsap.set(bodyEls, { opacity: 0, y: 34 });
-    onView(contactBody, () => gsap.to(bodyEls, {
-      opacity: 1, y: 0, stagger: 0.14, duration: 0.9, ease: "power3.out",
-    }), { threshold: 0.25 });
-  }
-  // O glow contínuo é um efeito de loop (não reveal), então fica fora do onView.
-  gsap.to(".contact__pretitle", {
-    boxShadow: "0 .8rem 2.6rem rgba(2,2,2,.5)",
-    duration: 2.4,
-    ease: "sine.inOut",
-    repeat: -1,
-    yoyo: true,
-  });
-}
-
 // --- Reveals universais: marquee (por visibilidade) ---
 if (!reduceMotion) {
   const marqueeEl = document.querySelector(".marquee");
@@ -1558,70 +710,11 @@ if (!reduceMotion) {
 
 // --- Animações extras (todas baseadas em visibilidade real, não em ScrollTrigger) ---
 if (!reduceMotion) {
-  // Hero glow que segue o mouse
-  const hero = document.querySelector(".hero");
-  if (hero && finePointer.matches) {
-    const glow = document.createElement("div");
-    glow.className = "hero__glow";
-    hero.insertBefore(glow, hero.firstChild);
-    hero.addEventListener("pointermove", (e) => {
-      const b = hero.getBoundingClientRect();
-      glow.style.setProperty("--gx", `${((e.clientX - b.left) / b.width) * 100}%`);
-      glow.style.setProperty("--gy", `${((e.clientY - b.top) / b.height) * 100}%`);
-    });
-  }
-
-  // World: revela ao entrar na viewport
-  const worldEl = document.querySelector(".world");
-  if (worldEl) {
-    onView(worldEl, () => {
-      // nada mais necessário - grid e scanline removidos
-    }, { threshold: 0.15 });
-  }
-
-  // About: título revela palavra-por-palavra com blur/rotação (scrub)
-  const aboutTitle = document.querySelector(".about h2");
-  if (aboutTitle) scrollReveal(aboutTitle, { baseRotation: 4, blurStrength: 4, wordEnd: "bottom 75%" });
-
   // Projects: título revela palavra-por-palavra com blur/rotação (scrub)
   const projectsTitle = document.querySelector(".projects__intro h2");
   if (projectsTitle) scrollReveal(projectsTitle, { baseRotation: -4, blurStrength: 4, wordEnd: "bottom 75%" });
 
-  // World: título revela palavra-por-palavra com blur/rotação (scrub)
-  const worldTitle = document.querySelector(".world__copy h2");
-  if (worldTitle) scrollReveal(worldTitle, { baseRotation: 3, blurStrength: 4, wordEnd: "bottom 75%" });
 
-  // World: eyebrow revela por palavra (scrub)
-  const worldEyebrow = document.querySelector(".world__eyebrow");
-  if (worldEyebrow) scrollReveal(worldEyebrow, { baseRotation: 0, blurStrength: 2, wordEnd: "bottom 80%" });
-  const worldCoords = document.querySelectorAll(".world__coordinates strong, .world__coordinates span");
-  if (worldCoords.length) {
-    gsap.set(worldCoords, { opacity: 0, x: -16 });
-    onView(document.querySelector(".world__coordinates"), () => gsap.to(worldCoords, { opacity: 1, x: 0, stagger: 0.05, duration: 0.5, ease: "power2.out" }), { threshold: 0.3 });
-  }
-
-  // Services: números (01/02/03) escalam no reveal
-  document.querySelectorAll(".service__index").forEach((idx) => {
-    gsap.set(idx, { scale: 0.4, opacity: 0 });
-    onView(idx, () => gsap.to(idx, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2)" }), { threshold: 0.5 });
-  });
-
-  // Contact: footer links revelam com brilho
-  const contactFooter = document.querySelector(".contact__footer");
-  if (contactFooter) {
-    const footerLinks = contactFooter.querySelectorAll("a");
-    gsap.set(footerLinks, { opacity: 0, y: 14 });
-    onView(contactFooter, () => gsap.to(footerLinks, { opacity: 1, y: 0, stagger: 0.07, duration: 0.6, ease: "power3.out" }), { threshold: 0.3 });
-  }
-}
-
-// --- Hero: leve skew no scroll (parallax extra) ---
-if (!reduceMotion) {
-  gsap.to(".hero__title", {
-    skewY: -1,
-    ease: "none",
-    scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 1 },
-  });
 }
 
 // --- Title change quando a aba perde o foco ---
